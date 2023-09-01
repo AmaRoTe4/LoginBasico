@@ -1,3 +1,4 @@
+import { BASE_URL } from "../const";
 import { fetchPost } from "./fetch";
 
 export const register_user = async (e: React.FormEvent<HTMLFormElement>) =>  {
@@ -19,13 +20,15 @@ export const register_user = async (e: React.FormEvent<HTMLFormElement>) =>  {
     }
     
     const resultado = await fetchPost({
-        path:"http://localhost:3001/api/comprobadores/crear_sesion",
+        path: BASE_URL + "comprobadores/crear_sesion",
         method:"POST",
         body,
         headers:{}
     })
-
-    if(!resultado.status) return alert("error");
-    alert("Creado con exito!!!")
-    window.location.assign("/login");
+    
+    if(!resultado.status) return alert("error: " + JSON.stringify(resultado?.message));
+    alert("Creado con exito!!! " + resultado.data?.token)
+    setTimeout(() => {
+        window.location.assign("/validation?register=true");
+    } , 5000)
 }

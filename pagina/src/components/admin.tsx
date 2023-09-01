@@ -1,7 +1,13 @@
-export default function Admin(){
+import useZonaAdmin from "../hooks/useZonaAdmin"
+
+export default function Admin() {
+    useZonaAdmin()
+
     return (
         <div className="text-black">
-            Admin
+            <h1>
+                hola mundo
+            </h1>
         </div>
     )
 }

@@ -1,103 +1,149 @@
-import { validarClave } from "../validaciones/index.js";
-import { createData } from "../controllers/data.js";
+import { createData, falseToken } from "../controllers/data.js";
 import {
+  validate_token,
   trueToken,
   getPasswordAndSaltByEmail,
   updateToken,
-  getId_userForToken,
+  existEmail,
+  validate_sesion_by_token,
 } from "../controllers/data.js";
 import { createToken } from "../functions/token.js";
 import { ComprobarPassword, SifrarPassword } from "../functions/bcrypt.js";
 import { ModelUsers, ModelValidaciones } from "../models/models.js";
 
-export const Crear_cuente = async (req, res, next) => {
+export const crear_cuente = async (req, res, next) => {
   try {
-    validarClave(req, res);
+    //validarClave(req, res);
     const id_user = req?.body?.id_user ?? "";
     const email = req?.body?.email;
     const password = req?.body?.password;
 
-    const { password_hash, salt } = SifrarPassword(password);
+    const exist = await existEmail(email)
+    
+    if(exist) return res.json({
+      status: false,
+      data: { token: undefined },
+      message: "Emial ocupado!",
+    });
+    
     const token = createToken();
+    const { password_hash, salt } = await SifrarPassword(password);
 
-    await createData(ModelUsers, {
+    const user = await createData(ModelUsers, {
       id_user,
-      id_type: 1,
-      id_localidad: "",
       token,
       nombre: "",
-      nombre_local: "",
-      titulo: "",
-      descripcion: "",
-      telefono: "",
-      direccion: "",
       email,
       estado: true,
     });
 
     await createData(ModelValidaciones, {
-      id_prof: "",
+      id_prof: user.id,
       password: password_hash,
       salt,
-      token,
+      token: true,
     });
 
     res.json({
       status: true,
-      data: {},
+      data: { token },
       message: "User creado correctamente!",
     });
-  } catch (err) {
-    res.json({ message: err.message });
-    next(err);
+  } catch (error) {
+    console.error(error);
+    res.json({
+      status: false,
+      data: {},
+      message: error.message,
+    });
+    next(error);
   }
 };
 
-export const Validar_inicio_de_sesion = async (req, res, next) => {
+export const iniciar_sesion = async (req, res, next) => {
   try {
-    validarClave(req, res);
+    //validarClave(req, res);
     const email = req?.body?.email;
     const password = req?.body?.password;
     const resultado = await getPasswordAndSaltByEmail(email);
 
-    if (!resultado.status) res.json(resultado);
+    if (!resultado?.status) return res.json({ ...resultado, data: {} });
 
     //con esto validamos el password
-    const { salt, passwordHash, id } = resultado.data;
-    const valPassword = ComprobarPassword(password, passwordHash);
+    const { salt, password_hash, id, status_token } = resultado.data;
     
-    if (!valPassword)
-      res.json({
+    console.log(resultado.data)
+    
+    if (status_token)
+      return res.json({
         status: false,
         data: {},
-        message: "Error email no valido",
+        message: "Error usuario no validado!",
+      });
+
+    const valPassword = await ComprobarPassword(password, password_hash);
+
+    if (!valPassword)
+      return res.json({
+        status: false,
+        data: {},
+        message: "Error password incorrecta",
       });
 
     const token = createToken();
     await updateToken(token, id);
     await trueToken(id);
-    //console.log(resultUpdateToken);
 
-    res.json({
+    return res.json({
       status: true,
       data: {
-        id,
+        token,
       },
       message: "Email enviado correctamente!",
     });
   } catch (err) {
-    res.json({ message: err.message });
+    res.json({ status: false, message: err.message });
     next(err);
   }
 };
 
-//pedimos un token y devolvems un undefined o un id_user
-export const Token_sesion = async (req, res, next) => {
+export const validar_token = async (req, res, next) => {
   try {
-    validarClave(req, res);
-    const token = req?.body?.token;
-    const resultado = await getId_userForToken(token);
-    res.json(resultado);
+    //validarClave(req, res);
+    const token_val = req.body?.token;
+    const { token, message , id } = await validate_token(token_val);
+
+    if (!token)
+      return res.json({
+        status: false,
+        message: message ?? "relacion no valida",
+      });
+
+    if (token) {
+      const resultado = await falseToken(id);
+      return res.json({
+        status: Boolean(resultado)
+      })
+    }
+
+    res.json({
+      status: token,
+      message,
+    });
+  } catch (err) {
+    res.json({ status: false, message: err.message });
+    next(err);
+  }
+};
+
+export const estado_login = async (req, res, next) => {
+  try {
+    //validarClave(req, res);
+    const token_val = req?.body?.token;
+    const { status } = await validate_sesion_by_token(token_val);
+    res.json({
+      status,
+    });
   } catch (err) {
     res.json({ message: err.message });
     next(err);

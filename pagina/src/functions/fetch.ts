@@ -1,3 +1,5 @@
+import { CLAVE_API_POST } from "../const";
+
 export const fetchPost = async ({
   path,
   method,
@@ -14,7 +16,7 @@ export const fetchPost = async ({
     method,
     headers: {
       "Content-Type": "application/json",
-      "clave": "crMRzVT2veEAs4EVPnJWX",
+      "clave": CLAVE_API_POST,
       ...headers,
     },
   })

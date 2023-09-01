@@ -13,6 +13,16 @@ export const getAllDataById_prof = async (Model, id_prof) => {
   });
 };
 
+export const existEmail = async (email) => {
+  const resultado = await ModelUsers.findOne({
+    where: {
+      email,
+    },
+  });
+
+  return Boolean(resultado);
+};
+
 export const getDataById = async (Model, id) => {
   return await Model.findAll({
     where: {
@@ -40,11 +50,11 @@ export const getPasswordAndSaltByEmail = async (email) => {
     }
 
     const usuario = await ModelUsers.findOne({
-      attributes: ["id"],
+      attributes: ["id", "token"],
       where: { email },
     });
 
-    if (!usuario) {
+    if (usuario == null) {
       return {
         status: false,
         data: {},
@@ -52,13 +62,13 @@ export const getPasswordAndSaltByEmail = async (email) => {
       };
     }
 
-    const { id } = usuario;
+    const { id, token } = usuario;
     const data = await ModelValidaciones.findOne({
-      attributes: ["salt", "password"],
+      attributes: ["salt", "password", "token"],
       where: { id_prof: id },
     });
 
-    if (!data) {
+    if (data == null) {
       return {
         status: false,
         data: {},
@@ -69,8 +79,10 @@ export const getPasswordAndSaltByEmail = async (email) => {
     return {
       status: true,
       data: {
+        status_token: data.token,
+        token,
         id,
-        password: data.password,
+        password_hash: data.password,
         salt: data.salt,
       },
       message: "ok",
@@ -133,6 +145,63 @@ export const updateToken = async (token, id) => {
   });
 };
 
+export const validate_token = async (token) => {
+  try {
+    const { id } = await ModelUsers.findOne({
+      attributes: ["id"],
+      where: {
+        token,
+      },
+    });
+
+    if (!id)
+      return {
+        token: undefined,
+        message: "token no existente",
+      };
+
+    const retorno = await ModelValidaciones.findOne({
+      attributes: ["token"],
+      where: {
+        id_prof: id,
+      },
+    });
+
+    return { ...JSON.parse(JSON.stringify(retorno)), id };
+  } catch (error) {
+    console.error("Error validar token: " + JSON.stringify(error));
+    return false;
+  }
+};
+
+export const validate_sesion_by_token = async (token) => {
+  try {
+    const user = await ModelUsers.findOne({
+      attributes: ["id", "estado"],
+      where: {
+        token,
+      },
+    });
+
+    if (user == undefined || user?.id == undefined || !(user?.estado)) return { status: false };
+
+    const resultado = await ModelValidaciones.findOne({
+      attributes: ["token"],
+      where: {
+        id_prof: user?.id,
+      },
+    });
+
+    if (resultado?.token == undefined) return { status: false };
+
+    const retorno = !resultado?.token
+    return { status: retorno };
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+};
+
 export const falseToken = async (id) => {
   return await ModelValidaciones.update(
     { token: false },
@@ -158,9 +227,10 @@ export const trueToken = async (id) => {
 export const createData = async (Model, body) => {
   const id = newId();
   try {
-    return await Model.create({ ...body, id});
+    return await Model.create({ ...body, id });
   } catch (error) {
-    //console.error(error);
+    console.error(error);
+    return error;
   }
 };
 

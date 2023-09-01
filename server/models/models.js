@@ -21,6 +21,7 @@ export const ModelUsers = db.define("users", {
   estado: { type: DataTypes.BOOLEAN },
   token: { 
     type: DataTypes.STRING, 
+    allowNull: true,
     unique: true
   },
 });

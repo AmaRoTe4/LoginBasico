@@ -1,11 +1,13 @@
 import express from "express";
 import {
-  Validar_inicio_de_sesion,
-  Token_sesion,
-  Crear_cuente,
+  crear_cuente,
+  iniciar_sesion,
+  validar_token,
+  estado_login
 } from "../controllers/validaciones.js";
 
 export const RouterComprobadores = express.Router();
-RouterComprobadores.post("/crear_sesion", Crear_cuente);
-RouterComprobadores.post("/iniciar_sesion", Validar_inicio_de_sesion);
-RouterComprobadores.post("/token_sesion", Token_sesion);
+RouterComprobadores.post("/crear_sesion", crear_cuente);
+RouterComprobadores.post("/iniciar_sesion", iniciar_sesion);
+RouterComprobadores.post("/validar_token", validar_token);
+RouterComprobadores.post("/estado_login", estado_login);

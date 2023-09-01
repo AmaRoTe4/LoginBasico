@@ -1,28 +1,43 @@
+import { BASE_URL } from "../const";
 import { fetchPost } from "./fetch";
-import { delete_email, get_email, set_id_user } from "./localstorege";
+import { set_token } from "./localstorege";
 
-export const validar_token = async (e: React.FormEvent<HTMLFormElement>) => {
+const middelware = async (e:React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = e.target as HTMLFormElement
     const formData = new FormData(form)
-    const token = formData.get("token")
+    const token = formData.get("token") as string
 
     const body = {
         token,
-        email: get_email()
     }
 
     const resultado = await fetchPost({
-        path:"http://localhost:3000/api",
+        path: BASE_URL + "comprobadores/validar_token",
         method:"POST",
         body,
         headers:{}
     })
 
-    if(!resultado.status) return alert("error");
-    alert("Validado!!!")
+    if(!resultado.status) alert("error"); 
+    else alert("Validado!!!")
+    return {
+        token,
+        status: resultado.status
+    }
+}
+
+export const validar_token_iniciar_sesion = async (e: React.FormEvent<HTMLFormElement>) => {
+    const { token , status } = await middelware(e)
+    if(!status) return;
+    window.location.assign("/admin")
+    set_token(token)
+}
+
+export const validar_token_crear_sesion = async (e: React.FormEvent<HTMLFormElement>) => {
+    const { token , status } = await middelware(e)
+    if(!status) return;
     window.location.assign("/")
-    delete_email();
-    set_id_user(resultado.id_user)
+    set_token(token)
 }
