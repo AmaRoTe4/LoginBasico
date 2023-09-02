@@ -1,14 +1,23 @@
-import { validar_token_crear_sesion , validar_token_iniciar_sesion } from "../functions/validar";
+import { validar_token_crear_sesion , validar_token_iniciar_sesion, validar_token_recuperar_cuenta } from "../functions/validar";
 import Segurity_svg from "../icons/segurity";
 
 export default function Validation() {
     const search = window.location.search
     const type = search?.split("?")[1]?.split("=")[0]
 
+    const funcionForm = (e: React.FormEvent<HTMLFormElement>) => {
+        if(type === "login")
+            validar_token_iniciar_sesion(e) 
+        else if (type === "recuperar_cuenta")
+            validar_token_recuperar_cuenta(e)
+        else
+            validar_token_crear_sesion(e)
+    }
+
     return (
         <main className="w-screen px-[100px] flex flex-col justify-center items-center pt-10">
             <form className="w-full flex flex-col" onSubmit={e => 
-                    type === "login" ? validar_token_iniciar_sesion(e) : validar_token_crear_sesion(e)
+                    funcionForm(e)
                 }>
                 <div className="w-full">
                     <label className="w-full block mb-2 text-sm font-medium text-gray-900 dark:text-white">Token</label>

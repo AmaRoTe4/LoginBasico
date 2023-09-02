@@ -1,6 +1,14 @@
 import { newId } from "../functions/ids.js";
 import { ModelUsers, ModelValidaciones } from "../models/models.js";
 
+//lo que hace que al pasar cualquier objeto de reaacion lo busca por eso al id_user
+export const id_user_for_id = async (info) => {
+  return await ModelUsers.findOne({
+    attributes: ["id_user"],
+    where: info,
+  });
+}
+
 export const getAllData = async (Model) => {
   return await Model.findAll();
 };
@@ -14,13 +22,18 @@ export const getAllDataById_prof = async (Model, id_prof) => {
 };
 
 export const existEmail = async (email) => {
-  const resultado = await ModelUsers.findOne({
-    where: {
-      email,
-    },
-  });
-
-  return Boolean(resultado);
+  try{
+    const resultado = await ModelUsers.findOne({
+      where: {
+        email,
+      },
+    });
+  
+    return Boolean(resultado);
+  }catch(error){
+    console.error("Error: " + error)
+    return false
+  }
 };
 
 export const getDataById = async (Model, id) => {
@@ -37,6 +50,39 @@ export const getProfesionalById_user = async (id_user) => {
       id_user,
     },
   });
+};
+
+export const existencia_email_with_data = async (email) => {
+  try {
+    if (!email) {
+      return {
+        status: false,
+        data: {},
+        message: "Error email no valido",
+      };
+    }
+
+    const usuario = await ModelUsers.findOne({
+      attributes: ["id"],
+      where: { email },
+    });
+
+    if (usuario == null) {
+      return {
+        status: false,
+        data: {},
+        message: "Error email no encontrado",
+      };
+    }
+
+    return {
+      status: true,
+      data: {id: usuario.id},
+      message: "ok",
+    };
+  } catch (error) {
+    console.error("Error en la consulta:", error);
+  }
 };
 
 export const getPasswordAndSaltByEmail = async (email) => {
@@ -79,11 +125,8 @@ export const getPasswordAndSaltByEmail = async (email) => {
     return {
       status: true,
       data: {
-        status_token: data.token,
-        token,
         id,
         password_hash: data.password,
-        salt: data.salt,
       },
       message: "ok",
     };
@@ -138,17 +181,20 @@ export const updateData = async (Model, body, id) => {
 };
 
 export const updateToken = async (token, id) => {
-  return await ModelUsers.update(token, {
-    where: {
-      id,
-    },
-  });
+  return await ModelUsers.update(
+    { token },
+    {
+      where: {
+        id,
+      },
+    }
+  );
 };
 
 export const validate_token = async (token) => {
   try {
-    const { id } = await ModelUsers.findOne({
-      attributes: ["id"],
+    const { id , id_user } = await ModelUsers.findOne({
+      attributes: ["id", "id_user"],
       where: {
         token,
       },
@@ -167,35 +213,26 @@ export const validate_token = async (token) => {
       },
     });
 
-    return { ...JSON.parse(JSON.stringify(retorno)), id };
+    return { ...JSON.parse(JSON.stringify(retorno)), id , id_user };
   } catch (error) {
     console.error("Error validar token: " + JSON.stringify(error));
     return false;
   }
 };
 
-export const validate_sesion_by_token = async (token) => {
+export const validate_sesion_by_id_user = async (id_user) => {
   try {
     const user = await ModelUsers.findOne({
       attributes: ["id", "estado"],
       where: {
-        token,
+        id_user,
       },
     });
 
-    if (user == undefined || user?.id == undefined || !(user?.estado)) return { status: false };
+    if (user == undefined || user?.id == undefined || !user?.estado)
+      return { status: false };
 
-    const resultado = await ModelValidaciones.findOne({
-      attributes: ["token"],
-      where: {
-        id_prof: user?.id,
-      },
-    });
-
-    if (resultado?.token == undefined) return { status: false };
-
-    const retorno = !resultado?.token
-    return { status: retorno };
+    return { status: true };
   } catch (error) {
     console.error(error);
     return false;
@@ -239,3 +276,42 @@ export const deleteData = async (Model, id) => {
     where: { id },
   });
 };
+
+export const updatePasswordByEmail = async (email , password , salt) => {
+  try {
+    if (!email) {
+      return {
+        status: false,
+        data: {},
+        message: "Error email no valido",
+      };
+    }
+
+    const { id } = await ModelUsers.findOne({
+      attributes: ["id"],
+      where: {
+        email
+      },
+    })
+
+    const usuario = await ModelValidaciones.update({password , salt} , {
+      where: { id_prof: id },
+    });
+
+    if (usuario == null) {
+      return {
+        status: false,
+        data: {},
+        message: "Error al actualizar el password",
+      };
+    }
+
+    return {
+      status: true,
+      data: {},
+      message: "ok",
+    };
+  } catch (error) {
+    console.error("Error en la consulta:", error);
+  }
+}

@@ -6,7 +6,7 @@ export default function Admin() {
     return (
         <div className="text-black">
             <h1>
-                hola mundo
+                admin
             </h1>
         </div>
     )
