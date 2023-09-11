@@ -1,5 +1,6 @@
 import { BASE_URL } from "../const";
 import { fetchPost } from "./fetch";
+import { validateEmailAndPassword } from "./validaciones_form";
 
 export const login_user = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -10,7 +11,11 @@ export const login_user = async (e: React.FormEvent<HTMLFormElement>) => {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  //validar data
+  const validacion:{status:boolean , errors: string[]} = validateEmailAndPassword(email, password);
+
+  if(!validacion.status){
+    return alert(validacion.errors?.map(n => n + ". "));
+  }
 
   const body = {
     email,
@@ -24,7 +29,9 @@ export const login_user = async (e: React.FormEvent<HTMLFormElement>) => {
     headers: {},
   });
 
-  if (!resultado.status) return alert(resultado.message);
+  if (!resultado)
+    return alert("error: con la comunicacion con el server");
+  if (!resultado?.status) return alert(resultado?.message);
   alert(
     "Validado!!!, te mandaremos un correo a la direccion " +
       email +
